@@ -64,7 +64,7 @@ function FlowBuilder() {
       const id = `${type}-${+new Date()}`;
       const newNode = {
         id, // unique identifier (string)
-        type: type,
+        type: getNodeCategory(type),
         // subtype: type, // this stays "default" for React Flow node type
         position, // { x, y }
         data: {
@@ -77,7 +77,7 @@ function FlowBuilder() {
           },
         },
       };
-      console.log(type);
+      // console.log(getNodeCategory(type));
       setNodes((nds) => [...nds, newNode]);
     },
     [setNodes, nodes]

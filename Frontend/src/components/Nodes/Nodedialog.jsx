@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
+import { Proportions, Trash2 } from "lucide-react";
 import { getInitialFields } from "../FlowBuilder/HelperFunctions"; // make sure it's imported
+import { NodeFieldRenderer } from "../FlowBuilder/HelperFunctions";
 
 function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
   if (!node) return null;
@@ -9,8 +10,13 @@ function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
 
   useEffect(() => {
     const initialFields = getInitialFields(node.type) || {};
-    const existing = node.data?.properties?.fields || {};
-    setFormData({ ...initialFields, ...existing });
+    const existing = node.data?.properties || {};
+    const filteredExisting = Object.fromEntries(
+      Object.entries(existing).filter(
+        ([key]) => key !== "fields" && key !== "isSelected"
+      )
+    );
+    setFormData({ ...initialFields, ...filteredExisting });
   }, [node]);
 
   const handleChange = (field, value) => {
@@ -22,29 +28,10 @@ function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
       ...node,
       data: {
         ...node.data,
-        fields: formData,
+        properties: formData,
       },
     });
     onClose();
-  };
-
-  const renderFields = () => {
-    const keys = Object.keys(formData);
-    if (keys.length === 0) return <p>No editable fields for this node.</p>;
-
-    return keys.map((key, idx) => (
-      <div key={idx} className="mb-4">
-        <label className="text-sm font-medium capitalize block mb-1">
-          {key.replace(/([a-z])([A-Z])/g, "$1 $2")}
-        </label>
-        <input
-          type="text"
-          value={formData[key]}
-          onChange={(e) => handleChange(key, e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-      </div>
-    ));
   };
 
   return (
@@ -64,7 +51,7 @@ function BaseNodeDialog({ node, onClose, onSave, onDelete }) {
           <h2 className="text-lg font-bold mb-4">
             Edit Node: {node.data.label}
           </h2>
-          {renderFields()}
+          <NodeFieldRenderer formData={formData} onChange={handleChange} />
 
           <div className="flex justify-end gap-2">
             <button

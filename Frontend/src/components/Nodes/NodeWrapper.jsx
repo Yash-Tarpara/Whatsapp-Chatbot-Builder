@@ -3,7 +3,13 @@
 import { Handle, Position } from "@xyflow/react";
 
 // BaseNodeWrapper (reusable shell for all nodes)
-function BaseNode({ icon, label, bgColor = "bg-sky-200", data }) {
+function BaseNode({
+  icon,
+  label,
+  bgColor = "bg-sky-200",
+  data,
+  hideRightHandle,
+}) {
   const selectedRing = data?.isSelected ? "ring-4 ring-yellow-500" : "";
 
   return (
@@ -16,11 +22,13 @@ function BaseNode({ icon, label, bgColor = "bg-sky-200", data }) {
           position={Position.Left}
           className="!w-2 !h-2 !bg-black absolute"
         />
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!w-2 !h-2 !bg-black absolute"
-        />
+        {!hideRightHandle && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            className="!w-2 !h-2 !bg-black absolute"
+          />
+        )}
         {icon}
       </div>
       <div className="mt-1 px-3 py-1 text-sm text-center text-slate-800 rounded-2xl bg-white">
@@ -50,11 +58,13 @@ import {
   SquarePen,
   WholeWord,
   MessageSquareReply,
+  Zap,
+  UserRoundPen,
 } from "lucide-react";
 
 export const TriggerUserMessage = (props) => (
   <BaseNode
-    icon={<MessageSquare size={24} />}
+    icon={<UserRoundPen size={24} />}
     label="User Message"
     bgColor="bg-green-200"
     {...props}
@@ -156,6 +166,7 @@ export const ControlEndFlow = (props) => (
     icon={<LogOut size={24} />}
     label="End Flow"
     bgColor="bg-pink-300"
+    hideRightHandle={true}
     {...props}
   />
 );

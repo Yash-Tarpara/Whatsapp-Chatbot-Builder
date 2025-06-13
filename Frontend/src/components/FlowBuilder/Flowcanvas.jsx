@@ -10,7 +10,6 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useState } from "react";
 import CustomEdge from "../Edges/Customedge";
 import nodeTypes from "../Nodes/NodeTypes";
-import NodeDialog from "../Nodes/Nodedialog";
 import BaseNodeDialog from "../Nodes/Nodedialog";
 import EdgeDialog from "../Edges/Edgedialog";
 
@@ -21,6 +20,18 @@ const edgeTypes = {
 function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [selectedEdge, setSelectedEdge] = useState(null);
+
+  const [pendingConnection, setPendingConnection] = useState(null);
+  const [showLabelPrompt, setShowLabelPrompt] = useState(false);
+  const [labelChoice, setLabelChoice] = useState("true");
+  const normalizedEdges = edges.map((edge) => ({
+    ...edge,
+    type: "testingEdge",
+    data: {
+      ...edge.data,
+      label: edge.data?.label || edge.label || "",
+    },
+  }));
 
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -33,14 +44,37 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
   );
 
   const onConnect = useCallback(
-    (params) =>
-      setEdges((eds) => addEdge({ ...params, type: "testingEdge" }, eds)),
-    [setEdges]
+    (params) => {
+      const sourceNode = nodes.find((node) => node.id === params.source);
+
+      if (sourceNode?.type === "condition") {
+        setPendingConnection(params);
+        setShowLabelPrompt(true);
+      } else {
+        setEdges((eds) => addEdge({ ...params, type: "testingEdge" }, eds));
+      }
+    },
+    [nodes, setEdges]
   );
+
+  const handleLabelConfirm = () => {
+    setEdges((eds) =>
+      addEdge(
+        {
+          ...pendingConnection,
+          type: "testingEdge",
+          label: labelChoice,
+        },
+        eds
+      )
+    );
+    setPendingConnection(null);
+    setShowLabelPrompt(false);
+    setLabelChoice("true");
+  };
 
   const handleNodeClick = (event, node) => {
     event.preventDefault();
-    // console.log("Node clicked:", node);
     setSelectedNode(node);
   };
 
@@ -52,6 +86,7 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
   const handleCloseEdgeDialog = () => {
     setSelectedEdge(null);
   };
+
   const handleDeleteEdge = (edgeId) => {
     setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
     handleCloseEdgeDialog();
@@ -64,6 +99,7 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
     );
     handleCloseNodeDialog();
   };
+
   const handleCloseNodeDialog = () => {
     setSelectedNode(null);
   };
@@ -94,7 +130,7 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
         }))}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        edges={edges}
+        edges={normalizedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
@@ -106,6 +142,7 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
         <Controls />
       </ReactFlow>
 
+      {/* Node Editing Dialog */}
       {selectedNode && (
         <BaseNodeDialog
           node={selectedNode}
@@ -114,13 +151,53 @@ function FlowCanvas({ nodes, setNodes, edges, setEdges }) {
           onSave={handleSaveNode}
         />
       )}
+
+      {/* Edge Editing Dialog */}
       {selectedEdge && (
         <EdgeDialog
           edge={selectedEdge}
           onDelete={handleDeleteEdge}
           onClose={handleCloseEdgeDialog}
           onSave={handleSaveEdge}
+          nodes={nodes}
         />
+      )}
+
+      {/* Label selection dropdown for condition edges */}
+      {showLabelPrompt && (
+        <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-50">
+          <div className="bg-white border border-gray-300 rounded-lg shadow-lg px-4 py-3 min-w-[200px] text-sm">
+            <div className="font-medium mb-2 text-gray-700">
+              Select edge label:
+            </div>
+            <select
+              value={labelChoice}
+              onChange={(e) => setLabelChoice(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded mb-3 text-gray-800"
+            >
+              <option value="true">True</option>
+              <option value="false">False</option>
+            </select>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                onClick={handleLabelConfirm}
+              >
+                Confirm
+              </button>
+              <button
+                className="bg-gray-300 text-gray-800 px-3 py-1 rounded hover:bg-gray-400"
+                onClick={() => {
+                  setShowLabelPrompt(false);
+                  setPendingConnection(null);
+                  setLabelChoice("true");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

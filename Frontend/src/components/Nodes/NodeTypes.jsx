@@ -17,21 +17,21 @@ import {
 } from "./NodeWrapper";
 
 const nodeTypes = {
-  TriggerUserMessage: TriggerUserMessage,
-  TriggerNewChat: TriggerNewChat,
-  ConditionKeyword: ConditionKeyword,
-  ConditionVariable: ConditionVariable,
-  ActionSendText: ActionSendText,
-  ActionSendMedia: ActionSendMedia,
-  ActionQuickReply: ActionQuickReply,
-  ActionDelay: ActionDelay,
-  ActionSetVariable: ActionSetVariable,
-  ActionApiCall: ActionApiCall,
-  ControlGoto: ControlGoto,
-  ControlEndFlow: ControlEndFlow,
-  ConditionInputAsk: InputAsk,
-  ConditionAiGpt: AiGpt,
-  ConditionDebugLog: DebugLog,
+  start: TriggerUserMessage,
+  // TriggerNewChat: TriggerNewChat,
+  condition: ConditionKeyword,
+  // ConditionVariable: ConditionVariable,
+  message: ActionSendText,
+  // ActionSendMedia: ActionSendMedia,
+  // ActionQuickReply: ActionQuickReply,
+  // ActionDelay: ActionDelay,
+  // ActionSetVariable: ActionSetVariable,
+  // ActionApiCall: ActionApiCall,
+  // ControlGoto: ControlGoto,
+  end: ControlEndFlow,
+  // ConditionInputAsk: InputAsk,
+  // ConditionAiGpt: AiGpt,
+  // ConditionDebugLog: DebugLog,
 };
 
 export default nodeTypes;

@@ -129,7 +129,7 @@ export default function Projects() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && projectToDelete && (
-          <div className="fixed inset-0 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="fixed inset-0 backdrop-blur-sm flex justify-center items-center z-50 animate-scale-in">
             <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">
                 Confirm Deletion
@@ -161,7 +161,7 @@ export default function Projects() {
         )}
 
         {createProjectModal && (
-          <div className="animate-slide-in-right fixed inset-0 backdrop-blur-sm bg-opacity-50 flex justify-center items-center z-50">
+          <div className="animate-slide-in-right fixed inset-0 backdrop-blur-sm bg-opacity-50 flex justify-center items-center z-50 animate-scale-in">
             <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">
                 Create New Project

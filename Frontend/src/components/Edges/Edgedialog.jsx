@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
-
-function EdgeDialog({ edge, onClose, onSave, onDelete }) {
+import { Trash2, MoveRight } from "lucide-react";
+function EdgeDialog({ edge, onClose, onSave, onDelete, nodes }) {
   const [label, setLabel] = useState("");
+  const [sourceIsCondition, setSourceIsCondition] = useState(false);
+  const sourceNode = nodes.find((n) => n.id === edge.source);
+  const targetNode = nodes.find((n) => n.id === edge.target);
 
   useEffect(() => {
-    setLabel(edge?.label || "");
+    const initialLabel = edge?.data?.label ?? edge?.label ?? "";
+    setLabel(initialLabel);
+
+    // Edge has access to `sourceNodeType` from data, fallback false
+    setSourceIsCondition(edge?.data?.sourceNodeType === "condition");
   }, [edge]);
 
   const handleSave = () => {
-    onSave({ ...edge, label });
+    const updatedEdge = {
+      ...edge,
+      label,
+    };
+    onSave(updatedEdge);
     onClose();
   };
 
@@ -23,7 +33,6 @@ function EdgeDialog({ edge, onClose, onSave, onDelete }) {
   return (
     <div className="animate-slide-in-right fixed top-0 left-0 w-full h-full bg-opacity-50 flex justify-center items-center z-50">
       <div className="absolute bg-white p-6 rounded-lg shadow-lg shadow-indigo-900 w-96 bottom-6 right-6">
-        {/* Delete Icon */}
         <button
           onClick={handleDelete}
           className="absolute top-4 right-4 text-red-500 hover:text-red-700"
@@ -32,18 +41,45 @@ function EdgeDialog({ edge, onClose, onSave, onDelete }) {
           <Trash2 className="w-5 h-5" />
         </button>
 
-        <h2 className="text-lg font-bold mb-4">Edit Edge {edge.id}</h2>
+        <h2 className="text-lg font-bold mb-4">
+          Edit edge from "{sourceNode.data.label}" to "{targetNode.data.label}"
+        </h2>
 
-        <label className="block mb-2 text-sm font-medium text-gray-700">
-          Label
-        </label>
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
-          placeholder="Edge label"
-        />
+        {sourceIsCondition ? (
+          <>
+            <p className="mb-3 text-sm text-gray-600">
+              Choose condition outcome:
+            </p>
+            <div className="flex gap-3 mb-4">
+              {["true", "false"].map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setLabel(opt)}
+                  className={`px-4 py-2 rounded ${
+                    label === opt
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Label
+            </label>
+            <input
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+              placeholder="Edge label"
+            />
+          </>
+        )}
 
         <div className="flex justify-end gap-2">
           <button
