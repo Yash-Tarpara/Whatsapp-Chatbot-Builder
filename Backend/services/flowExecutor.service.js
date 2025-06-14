@@ -17,15 +17,23 @@ export async function processMessage({
 
   if (!currentNodeId) {
     // If no state, find the starting node
-    const startNode = fileTree.nodes.find(
-      (node) =>
-        node.type === "TriggerUserMessage" || node.type === "TriggerNewChat"
-    );
+    const startNode = fileTree.nodes.find((node) => node.type === "start");
     if (!startNode) {
       console.log("No start node found for this flow.");
       return;
     }
     currentNodeId = startNode.id;
+
+    // If start node has a QuickReply message, send it immediately
+    const quickReply = startNode.data?.properties?.QuickReply;
+    if (quickReply) {
+      // console.log("Quick Reply sent!!");
+      await sendWhatsappMessage({
+        to: senderWaPhoneNo,
+        text: quickReply,
+        projectId,
+      });
+    }
   }
 
   await executeNode(currentNodeId, {
@@ -42,7 +50,7 @@ async function executeNode(nodeId, context) {
   const node = fileTree.nodes.find((n) => n.id === nodeId);
   if (!node) {
     console.error(`Node with ID ${nodeId} not found.`);
-    await redisClient.del(userStateKey); // End flow if node is missing
+    await redisClient.del(userStateKey);
     return;
   }
 
@@ -50,16 +58,14 @@ async function executeNode(nodeId, context) {
 
   let nextNodeId = null;
 
-  // --- NODE EXECUTION LOGIC ---
   switch (node.type) {
-    case "TriggerUserMessage":
-    case "TriggerNewChat":
-      // This node just starts the flow. Find the next node to execute.
+    case "start":
       nextNodeId = findNextNode(node.id, fileTree.edges);
       break;
 
-    case "ActionSendText":
-      const message = node.data?.fields?.message || "Default message";
+    case "message":
+      const message = node.data?.properties?.message || "Default message";
+      // console.log(`[DEBUG] Sending message: "${message}" from node ${node.id}`);
       await sendWhatsappMessage({
         to: context.senderWaPhoneNo,
         text: message,
@@ -68,30 +74,18 @@ async function executeNode(nodeId, context) {
       nextNodeId = findNextNode(node.id, fileTree.edges);
       break;
 
-    case "ConditionAiGpt":
-      const gptReply = await generateReply(context.messageText);
-      await sendWhatsappMessage({
-        to: context.senderWaPhoneNo,
-        text: gptReply,
-        projectId: context.projectId,
-      });
-      nextNodeId = findNextNode(node.id, fileTree.edges);
-      break;
-
-    case "ConditionKeyword":
-      const keywords = (node.data?.fields?.keywords || "")
+    case "condition":
+      const keywords = (node.data?.properties?.keywords || "")
         .split(",")
         .map((k) => k.trim().toLowerCase());
-      const messageMatches = keywords.some((k) =>
+      const matches = keywords.some((k) =>
         context.messageText.toLowerCase().includes(k)
       );
-
-      if (messageMatches) {
-        nextNodeId = findNextNode(node.id, fileTree.edges, "match");
-      } else {
-        nextNodeId = findNextNode(node.id, fileTree.edges, "no_match");
-      }
-
+      nextNodeId = findNextNode(
+        node.id,
+        fileTree.edges,
+        matches ? "true" : "false"
+      );
       if (!nextNodeId) {
         console.log("No matching condition path. Ending flow.");
         await redisClient.del(userStateKey);
@@ -99,31 +93,28 @@ async function executeNode(nodeId, context) {
       }
       break;
 
-    case "ControlEndFlow":
-      console.log("Flow ended by ControlEndFlow node.");
+    case "end":
+      console.log("Flow ended by end node.");
       await redisClient.del(userStateKey);
-      return; // Stop execution
+      return;
 
-    // Add more cases for other node types here (ActionDelay, ActionApiCall, etc.)
     default:
       console.log(`Node type "${node.type}" not implemented yet.`);
-      nextNodeId = findNextNode(node.id, fileTree.edges); // Move to next node by default
+      nextNodeId = findNextNode(node.id, fileTree.edges);
       break;
   }
-  // --- END OF NODE LOGIC ---
 
   if (nextNodeId) {
-    await redisClient.set(userStateKey, nextNodeId, "EX", 3600); // Set state with 1-hour expiry
-    await executeNode(nextNodeId, context); // Recursively execute the next node
+    await redisClient.set(userStateKey, nextNodeId, "EX", 3600);
+    await executeNode(nextNodeId, context);
   } else {
     console.log(
       `Flow ended for user ${context.senderWaPhoneNo}. No next node.`
     );
-    await redisClient.del(userStateKey); // Clean up state
+    await redisClient.del(userStateKey);
   }
 }
 
-// Helper to get the project's flow
 async function getProjectFileTree(projectId) {
   try {
     const project = await projectModel.findById(projectId).select("fileTree");

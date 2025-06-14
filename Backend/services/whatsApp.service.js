@@ -25,6 +25,10 @@ async function getProjectCredentials(projectId) {
 
 // Send a text message to the user via WhatsApp API
 export async function sendWhatsappMessage({to, text, projectId}) {
+  // if (process.env.NODE_ENV === "development") {
+  //   console.log(`[MOCK] Sending WhatsApp message"`);
+  //   return;
+  // }
   try {
     const {phoneNumberId, accessToken} = await getProjectCredentials(projectId);
 
